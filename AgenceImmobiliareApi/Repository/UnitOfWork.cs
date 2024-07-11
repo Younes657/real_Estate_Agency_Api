@@ -11,6 +11,7 @@ namespace AgenceImmobiliareApi.Repository
         public IRealEstateRepo RealEstateRepo { get; private set; }
         public IImageRepo ImageRepo { get; private set; }
         public IUserContactRepo UserContactRepo { get; private set; }
+        public IAddresseRepo AddresseRepo { get; private set; }
 
         public UnitOfWork(AppDbContext db)
         {
@@ -20,16 +21,16 @@ namespace AgenceImmobiliareApi.Repository
             ImageRepo = new ImageRepo(_db);
             UserContactRepo = new UserContactRepo(_db);
             BlogArticleRepo = new BlogArticleRepo(_db);
-            
+            AddresseRepo = new AddresseRepo(_db);
         }
         public AppDbContext AppDbContext()
         {
             return _db;
         }
 
-        public void Save()
+        public async Task Save()
         {
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
         }
 
     }

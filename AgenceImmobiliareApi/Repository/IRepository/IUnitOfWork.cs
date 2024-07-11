@@ -9,8 +9,9 @@ namespace AgenceImmobiliareApi.Repository.IRepository
         IBlogArticleRepo BlogArticleRepo { get; }
         IImageRepo ImageRepo { get; }
         IUserContactRepo UserContactRepo { get; }
+        IAddresseRepo AddresseRepo { get; }
         AppDbContext AppDbContext();
 
-        void Save();
+        Task Save();
     }
 }

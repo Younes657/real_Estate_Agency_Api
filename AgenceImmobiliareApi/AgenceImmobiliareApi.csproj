@@ -19,10 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-    <Folder Include="Models\DTOs\" />
     <Folder Include="Utility\" />
-    <Folder Include="Services\" />
+    <Folder Include="wwwroot\Images\RealEstates\" />
   </ItemGroup>
 
 </Project>
