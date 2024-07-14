@@ -5,6 +5,10 @@ using AgenceImmobiliareApi.Repository;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using AgenceImmobiliareApi.DbInitializer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +29,36 @@ builder.Services.AddIdentity<ApplicationUser , IdentityRole>().AddEntityFramewor
 //    options.Password.RequireNonAlphanumeric = false;
 //});
 
-builder.Services.AddCors(); //so if the api is called from some other urls it will work
+var key = builder.Configuration.GetValue<string>("ApiSettings:SecretKey");
+builder.Services.AddAuthentication(u =>
+{
+    u.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; //const Bearer
+    u.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(u =>
+{
+    u.RequireHttpsMetadata = false;
+    u.SaveToken = true;
+    u.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(key)),
+        ValidateIssuer = false,
+        ValidateAudience = false, // if we have a certain url can sent the token we should define here
+    };
+});
+
+builder.Services.AddCors(
+//    options =>
+//{
+//    options.AddPolicy("AllowSpecificOrigins",
+//        builder =>
+//        {
+//            builder.WithOrigins("https://example.com", "https://another-example.com")
+//                   .AllowAnyHeader()
+//                   .AllowAnyMethod();
+//        });
+//}
+); //so if the api is called from some other urls it will work
 
 //ignore circular references during serialization (two objects reference each other)
 builder.Services.AddControllers().AddJsonOptions(x =>
@@ -35,6 +68,8 @@ builder.Services.AddControllers().AddJsonOptions(x =>
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IDbInitializer, DbInitializer>();
+
 
 builder.Services.AddControllers();
 
@@ -59,11 +94,24 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseCors();
+app.UseCors(); //app.UseCors("AllowSpecificOrigins");
+//[EnableCors("AllowSpecificOrigins")] in controllers
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+SeedDb();
+
 app.MapControllers();
 
 app.Run();
+
+
+void SeedDb()
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        IDbInitializer dbInitializer = scope.ServiceProvider.GetRequiredService<IDbInitializer>();
+        dbInitializer.Initialize();
+    }
+}
