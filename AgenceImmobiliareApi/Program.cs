@@ -34,7 +34,8 @@ builder.Services.AddAuthentication(u =>
 {
     u.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; //const Bearer
     u.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(u =>
+}).AddCookie(x => x.Cookie.Name = "token")
+    .AddJwtBearer(u =>
 {
     u.RequireHttpsMetadata = false;
     u.SaveToken = true;
@@ -44,6 +45,15 @@ builder.Services.AddAuthentication(u =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(key)),
         ValidateIssuer = false,
         ValidateAudience = false, // if we have a certain url can sent the token we should define here
+        RequireExpirationTime = true,
+    };
+    u.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            context.Token = context.Request.Cookies["token"];
+            return Task.CompletedTask;
+        }
     };
 });
 
