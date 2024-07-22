@@ -13,6 +13,9 @@ using AgenceImmobiliareApi.DbInitializer;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IDbInitializer, DbInitializer>();
+
 // add the dbcontext 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -29,7 +32,7 @@ builder.Services.AddIdentity<ApplicationUser , IdentityRole>().AddEntityFramewor
 //    options.Password.RequireNonAlphanumeric = false;
 //});
 
-var key = builder.Configuration.GetValue<string>("ApiSettings:SecretKey");
+var key = builder.Configuration.GetValue<string>("ApiSetting:SecretKey");
 builder.Services.AddAuthentication(u =>
 {
     u.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; //const Bearer
@@ -51,14 +54,15 @@ builder.Services.AddAuthentication(u =>
     {
         OnMessageReceived = context =>
         {
-            context.Token = context.Request.Cookies["token"];
+            
+            context.Token = context.Request.Cookies["token"] ?? "";
             return Task.CompletedTask;
         }
     };
 });
 
-builder.Services.AddCors(
-//    options =>
+
+//    options => in AddCors()
 //{
 //    options.AddPolicy("AllowSpecificOrigins",
 //        builder =>
@@ -68,7 +72,14 @@ builder.Services.AddCors(
 //                   .AllowAnyMethod();
 //        });
 //}
-); //so if the api is called from some other urls it will work
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin",
+        builder => builder.WithOrigins("http://localhost:3000") // Replace with your frontend domain
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials()); // Important for including credentials
+}); //so if the api is called from some other urls it will work
 
 //ignore circular references during serialization (two objects reference each other)
 builder.Services.AddControllers().AddJsonOptions(x =>
@@ -76,13 +87,6 @@ builder.Services.AddControllers().AddJsonOptions(x =>
 
 //add the automapper to services
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
-
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IDbInitializer, DbInitializer>();
-
-
-builder.Services.AddControllers();
-
 
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -104,7 +108,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseCors(); //app.UseCors("AllowSpecificOrigins");
+app.UseRouting();
+app.UseCors("AllowSpecificOrigin"); //app.UseCors("AllowSpecificOrigins");
 //[EnableCors("AllowSpecificOrigins")] in controllers
 
 app.UseAuthentication();

@@ -13,6 +13,11 @@ namespace AgenceImmobiliareApi.Services
 
             CreateMap<RealEstateUpdateDto, RealEstate>();
             CreateMap<RealEstate, RealEstateUpdateDto>();
+
+            CreateMap<Category , CategoryCreateDto>(); 
+            CreateMap<CategoryCreateDto , Category>();
+            CreateMap<Category, CategoryUpdateDto>() ;
+            CreateMap<CategoryUpdateDto, Category>();
         }
     }
 }

@@ -2,6 +2,7 @@
 using AgenceImmobiliareApi.Models;
 using AgenceImmobiliareApi.Models.DTOs;
 using AgenceImmobiliareApi.Repository.IRepository;
+using AgenceImmobiliareApi.Utility;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -82,6 +83,7 @@ namespace AgenceImmobiliareApi.Controllers
             if (realEstate == null)
             {
                 _response.StatusCode = System.Net.HttpStatusCode.NotFound;
+                _response.Errors.Add("Il n'y a aucune Immobilier correspondant aux données fournies");
                 _response.IsSuccess = false;
                 return NotFound(_response);
             }
@@ -236,7 +238,7 @@ namespace AgenceImmobiliareApi.Controllers
         }
 
         [HttpPost]
-        //[Authorize(Roles = SD.Role_admin)]
+        [Authorize(Roles = SD.Role_Admin)]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse>> CreateRealEstate([FromForm] RealEstateCreateDto RealEstateDto)
@@ -248,6 +250,13 @@ namespace AgenceImmobiliareApi.Controllers
                     RealEstate RealEstate = _mapper.Map<RealEstate>(RealEstateDto);
                     RealEstate.PostingDate = DateTime.Now;
                     RealEstate.UpdatedDate = DateTime.Now;
+
+                    //update the nbr of real estate in the specific category
+                    Category category = await _UnitOfWork.CategoryRepo.Get(x => x.Id ==  RealEstate.CategoryId);
+                    category.NbREstate += 1;
+                    _UnitOfWork.CategoryRepo.Update(category);
+                    await _UnitOfWork.Save();
+
                     RealEstate.NbImage = RealEstateDto.ImagesFiles == null ? 0 : RealEstateDto.ImagesFiles.Count;
                     //prepare the addresse
                     Addresse addresse = new ()
@@ -293,7 +302,7 @@ namespace AgenceImmobiliareApi.Controllers
         }
 
         [HttpPut("{id:int}")]
-        //[Authorize(Roles = SD.Role_admin)]
+        [Authorize(Roles = SD.Role_Admin)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -370,7 +379,7 @@ namespace AgenceImmobiliareApi.Controllers
         }
 
         [HttpDelete("{id:int}")]
-        //[Authorize(Roles = SD.Role_admin)]
+        [Authorize(Roles = SD.Role_Admin)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -394,10 +403,16 @@ namespace AgenceImmobiliareApi.Controllers
                     _response.StatusCode = HttpStatusCode.NotFound;
                     return NotFound(_response);
                 }
-
+                Addresse addresse = await _UnitOfWork.AddresseRepo.Get(x => x.Id == realEstate.AddressId);
                 //Thread.Sleep(2000);
                 _UnitOfWork.RealEstateRepo.Remove(realEstate);
+                if(addresse != null)
+                    _UnitOfWork.AddresseRepo.Remove(addresse);
                 await _UnitOfWork.Save();
+
+                //delete the folder of images
+                _ = _UnitOfWork.ImageRepo.UpsertImagesToFolder(_WebHostEnvironment, realEstate.Id, Deleted: true);
+
                 _response.IsSuccess = true;
                 _response.StatusCode = HttpStatusCode.NoContent;
                 return NoContent();

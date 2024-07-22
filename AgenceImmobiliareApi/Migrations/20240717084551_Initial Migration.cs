@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AgenceImmobiliareApi.Migrations
 {
     /// <inheritdoc />
-    public partial class initailmigration : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -46,6 +46,8 @@ namespace AgenceImmobiliareApi.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RefreshTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -247,22 +249,25 @@ namespace AgenceImmobiliareApi.Migrations
                 name: "RealEstates",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false, defaultValue: 100),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     RName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Surface = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Surface = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: false),
                     OffreType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AddressId = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     Floor = table.Column<int>(type: "int", nullable: false),
                     BathRoom = table.Column<int>(type: "int", nullable: true),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Room = table.Column<int>(type: "int", nullable: false),
                     Garage = table.Column<int>(type: "int", nullable: false),
                     NbImage = table.Column<int>(type: "int", nullable: false),
-                    PostinDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PostingDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
+
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RealEstates", x => x.Id);
@@ -279,6 +284,8 @@ namespace AgenceImmobiliareApi.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+            //add default value to start for the id
+            migrationBuilder.Sql("DBCC CHECKIDENT ('RealEstates', RESEED, 100);");
 
             migrationBuilder.CreateTable(
                 name: "Images",

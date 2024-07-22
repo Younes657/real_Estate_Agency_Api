@@ -21,6 +21,7 @@ namespace AgenceImmobiliareApi.Models.DTOs
         public string? Description { get; set; }
         public int Room { get; set; }
         public int Garage { get; set; }
+        public bool IsActive { get; set; }
         public string? Wilaya { get; set; }
         [Required]
         public string Ville { get; set; }

@@ -1,6 +1,7 @@
 ﻿using AgenceImmobiliareApi.Data;
 using AgenceImmobiliareApi.Models;
 using AgenceImmobiliareApi.Repository;
+using AgenceImmobiliareApi.Repository.IRepository;
 using AgenceImmobiliareApi.Utility;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -9,12 +10,12 @@ namespace AgenceImmobiliareApi.DbInitializer
 {
     public class DbInitializer : IDbInitializer
     {
-        private readonly UserManager<IdentityUser> _UserManager;
+        private readonly UserManager<ApplicationUser> _UserManager;
         private readonly RoleManager<IdentityRole> _RoleManager;
-        private readonly UnitOfWork _UnitOfWork;
-        public DbInitializer(UserManager<IdentityUser> userManager,
+        private readonly IUnitOfWork _UnitOfWork;
+        public DbInitializer(UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> userRole,
-            UnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork)
         {
             _UserManager = userManager;
             _RoleManager = userRole;
@@ -36,7 +37,7 @@ namespace AgenceImmobiliareApi.DbInitializer
             if (!_RoleManager.RoleExistsAsync(SD.Role_Admin).GetAwaiter().GetResult())
             {
                 _RoleManager.CreateAsync(new IdentityRole(SD.Role_Admin)).GetAwaiter().GetResult();
-                _RoleManager.CreateAsync(new IdentityRole(SD.Role_Cust)).GetAwaiter().GetResult();
+                _RoleManager.CreateAsync(new IdentityRole(SD.Role_User)).GetAwaiter().GetResult();
 
                 //then we create the first user admin
                IdentityResult? result = _UserManager.CreateAsync(new ApplicationUser()
