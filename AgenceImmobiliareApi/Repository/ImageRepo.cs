@@ -17,6 +17,33 @@ namespace AgenceImmobiliareApi.Repository
         {
             _db.Images.Update(image);
         }
+        public bool DeleteImage(IWebHostEnvironment webHostEnvironment, int RealEstateId , string link)
+        {
+            string wwwRootPath = webHostEnvironment.WebRootPath;
+            string fileName = link.Split("\\").Last();
+
+            if (!string.IsNullOrEmpty(fileName)) 
+            { 
+                string imagePath = Path.Combine(wwwRootPath, @$"Images\RealEstates\RE-{RealEstateId}\{fileName}");
+                if (System.IO.File.Exists(imagePath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(imagePath);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return false;
+        }
         public List<Image> UpsertImagesToFolder(IWebHostEnvironment webHostEnvironment, int RealEstateid, List<IFormFile>? files = null , bool? Deleted=null )
         {
             string wwwRootPath = webHostEnvironment.WebRootPath;

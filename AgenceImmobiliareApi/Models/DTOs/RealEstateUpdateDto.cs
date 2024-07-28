@@ -30,7 +30,6 @@ namespace AgenceImmobiliareApi.Models.DTOs
         [Required]
         public string Rue { get; set; }
         public int PostalCode { get; set; }
-        public bool IsModified { get; set; }
         public List<IFormFile>? ImagesFiles { get; set; } = new List<IFormFile>();
         //postingdate updadateddate nbImages
     }

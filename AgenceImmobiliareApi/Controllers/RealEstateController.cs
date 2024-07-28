@@ -37,7 +37,7 @@ namespace AgenceImmobiliareApi.Controllers
         {
             try
             {
-                IEnumerable<RealEstate> result = await _UnitOfWork.RealEstateRepo.GetAll(includeProperties: "Images");
+                IEnumerable<RealEstate> result = await _UnitOfWork.RealEstateRepo.GetAll(includeProperties: "Images,Category,Addresse");
                 _response.Result = result ?? [];
                 _response.StatusCode = System.Net.HttpStatusCode.OK;
                 _response.IsSuccess = true;
@@ -53,7 +53,7 @@ namespace AgenceImmobiliareApi.Controllers
             }
         }
 
-        [HttpGet("{id:int}", Name = "GetRealEstae")] //Name for redirection
+        [HttpGet("{id:int}", Name = "GetRealEstate")] //Name for redirection
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -70,7 +70,7 @@ namespace AgenceImmobiliareApi.Controllers
             RealEstate? realEstate = null;
             try
             {
-                realEstate = await _UnitOfWork.RealEstateRepo.Get(x => x.Id == id, includeProperties: "Images");
+                realEstate = await _UnitOfWork.RealEstateRepo.Get(x => x.Id == id, includeProperties: "Images,Category,Addresse");
             }
             catch (Exception ex)
             {
@@ -110,7 +110,7 @@ namespace AgenceImmobiliareApi.Controllers
             try
             {
                 Category catDb = await _UnitOfWork.CategoryRepo.Get(x => x.CategoryName == category);
-                var result = await _UnitOfWork.RealEstateRepo.GetAll(x => x.CategoryId == catDb.Id, includeProperties: "Images");
+                var result = await _UnitOfWork.RealEstateRepo.GetAll(x => x.CategoryId == catDb.Id, includeProperties: "Images,Category,Addresse");
                 _response.Result = result ?? [];
                 _response.StatusCode = System.Net.HttpStatusCode.OK;
                 _response.IsSuccess = true;
@@ -143,7 +143,7 @@ namespace AgenceImmobiliareApi.Controllers
 
             try
             {
-                var result = await _UnitOfWork.RealEstateRepo.GetAll(x => x.OffreType == OffreType, includeProperties: "Images");
+                var result = await _UnitOfWork.RealEstateRepo.GetAll(x => x.OffreType == OffreType, includeProperties: "Images,Category,Addresse");
                 _response.Result = result ?? [];
                 _response.StatusCode = System.Net.HttpStatusCode.OK;
                 _response.IsSuccess = true;
@@ -165,7 +165,7 @@ namespace AgenceImmobiliareApi.Controllers
         {
             try
             {
-                var result = await _UnitOfWork.AppDbContext().RealEstates.Include(x => x.Images).OrderByDescending(x => x.PostingDate).Take(10).ToListAsync();
+                var result = await _UnitOfWork.AppDbContext().RealEstates.Include(x => x.Images).Include(x => x.Category).Include(x => x.Addresse).OrderByDescending(x => x.PostingDate).Take(10).ToListAsync();
 
                 _response.Result = result ?? [];
                 _response.StatusCode = System.Net.HttpStatusCode.OK;
@@ -327,13 +327,26 @@ namespace AgenceImmobiliareApi.Controllers
                         _response.StatusCode = HttpStatusCode.NotFound;
                         return NotFound(_response);
                     }
+                   RealEstateDto.AddressId = RealEstateDb.AddressId;
+                    var datePosting = RealEstateDb.PostingDate;
+                    var nbImages = RealEstateDb.NbImage;
+                    if(RealEstateDb.CategoryId != RealEstateDto.CategoryId)
+                    {
+                        Category catAdd = await _UnitOfWork.CategoryRepo.Get(x =>x.Id == RealEstateDto.CategoryId);
+                        Category catDel = await _UnitOfWork.CategoryRepo.Get(x => x.Id == RealEstateDb.CategoryId);
+                        catAdd.NbREstate += 1;
+                        catDel.NbREstate -= 1;
+                    }
                     RealEstateDb = _mapper.Map<RealEstate>(RealEstateDto);
                     RealEstateDb.UpdatedDate = DateTime.Now;
-                    RealEstateDb.NbImage = RealEstateDto.ImagesFiles == null ? 0 : RealEstateDto.ImagesFiles.Count;
+                    RealEstateDb.PostingDate = datePosting;
+                    RealEstateDb.NbImage = nbImages;
+                    RealEstateDb.NbImage = RealEstateDto.ImagesFiles == null ? RealEstateDb.NbImage : RealEstateDb.NbImage + RealEstateDto.ImagesFiles.Count;
 
                     //prepare the addresse
                     Addresse addresse = new()
                     {
+                        Id = RealEstateDb.AddressId,
                         Wilaya = RealEstateDto.Wilaya ?? "",
                         Ville = RealEstateDto.Ville,
                         Rue = RealEstateDto.Rue,
@@ -341,20 +354,16 @@ namespace AgenceImmobiliareApi.Controllers
                     };
                     _UnitOfWork.AddresseRepo.Update(addresse);
                     await _UnitOfWork.Save();
-
-                    if (RealEstateDto.IsModified) { 
-                        
-                        if (RealEstateDto.ImagesFiles != null)
-                        {
-                            var images = _UnitOfWork.ImageRepo.UpsertImagesToFolder(_WebHostEnvironment, RealEstateDb.Id, RealEstateDto.ImagesFiles , true );
-                            RealEstateDb.Images = images;
-                        }
-                        else
-                        {
-                         var images = _UnitOfWork.ImageRepo.UpsertImagesToFolder(_WebHostEnvironment, RealEstateId : RealEstateDb.Id , Deleted: true);
-                            RealEstateDb.Images = images;
-                        }
+                    if (RealEstateDto.ImagesFiles != null)
+                    {
+                        var images = _UnitOfWork.ImageRepo.UpsertImagesToFolder(_WebHostEnvironment,RealEstateDb.Id, RealEstateDto.ImagesFiles );
+                        RealEstateDb.Images = images;
                     }
+                    //else
+                    //{
+                    // var images = _UnitOfWork.ImageRepo.UpsertImagesToFolde(_WebHostEnvironment,RealEstateId RealEstateDb.Id , Deleted: true);
+                    //    RealEstateDb.Images = images;
+                    //}
                     _UnitOfWork.RealEstateRepo.Update(RealEstateDb);
                     await _UnitOfWork.Save();
                     _response.IsSuccess = true;
@@ -405,9 +414,14 @@ namespace AgenceImmobiliareApi.Controllers
                 }
                 Addresse addresse = await _UnitOfWork.AddresseRepo.Get(x => x.Id == realEstate.AddressId);
                 //Thread.Sleep(2000);
-                _UnitOfWork.RealEstateRepo.Remove(realEstate);
+                
                 if(addresse != null)
                     _UnitOfWork.AddresseRepo.Remove(addresse);
+                Category category = await _UnitOfWork.CategoryRepo.Get(x => x.Id == realEstate.CategoryId);
+                category.NbREstate -= 1;
+                _UnitOfWork.CategoryRepo.Update(category);
+
+                _UnitOfWork.RealEstateRepo.Remove(realEstate);
                 await _UnitOfWork.Save();
 
                 //delete the folder of images
