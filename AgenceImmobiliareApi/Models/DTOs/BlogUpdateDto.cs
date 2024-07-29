@@ -1,10 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace AgenceImmobiliareApi.Models
+namespace AgenceImmobiliareApi.Models.DTOs
 {
-    public class BlogArticle
+    public class BlogUpdateDto
     {
-        [Key]
+        [Required]
         public int Id { get; set; }
         [Required]
         public string Title { get; set; }
@@ -12,9 +12,5 @@ namespace AgenceImmobiliareApi.Models
         public string Description { get; set; }
         [Required]
         public string Author { get; set; }
-        [Required]
-        public DateTime PublicationDate { get; set; } //add the modification date
-        public DateTime? UpdatedDate { get; set; }
-
     }
 }

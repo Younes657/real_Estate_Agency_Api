@@ -182,17 +182,17 @@ namespace AgenceImmobiliareApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, _response);
             }
         }
-        [HttpGet("SearchBy")] //Name for redirection
+        [HttpPost("SearchBy")] //Name for redirection
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ApiResponse>> GetBySearch([FromForm] RechercheCritiria SearchObj)
+        public async Task<ActionResult<ApiResponse>> GetBySearch( RechercheCritiria SearchObj)
         {
             try
             {
                 if (ModelState.IsValid)
                 {
-                    var result = await _UnitOfWork.RealEstateRepo.GetAll(x=> x.OffreType == SearchObj.OffreType && x.Price >= SearchObj.PrixMin && x.Price <= SearchObj.PrixMax,  includeProperties:"Images,Category,Addresse");
+                    var result = await _UnitOfWork.RealEstateRepo.GetAll(x=>x.OffreType == SearchObj.OffreType, includeProperties:"Images,Category,Addresse");
                     if (result != null)
                     {
                         if (!string.IsNullOrEmpty(SearchObj.Category))
@@ -204,22 +204,26 @@ namespace AgenceImmobiliareApi.Controllers
                         if (SearchObj.floor != 0)
                             result = result.Where(x => x.Floor == SearchObj.floor);
 
-                        if (string.IsNullOrEmpty(SearchObj.Wilaya))
+                        if (!string.IsNullOrEmpty(SearchObj.Wilaya))
                             result = result.Where(x => x.Addresse.Wilaya == SearchObj.Wilaya);
-                        if (string.IsNullOrEmpty(SearchObj.Ville))
+                        if (!string.IsNullOrEmpty(SearchObj.Ville))
                             result = result.Where(x => x.Addresse.Ville == SearchObj.Ville);
-                        if (string.IsNullOrEmpty(SearchObj.Rue))
+                        if (!string.IsNullOrEmpty(SearchObj.Rue))
                             result = result.Where(x => x.Addresse.Rue == SearchObj.Rue);
 
                         if (SearchObj.surfaceMax != 0)
                             result = result.Where(x => x.Surface <= SearchObj.surfaceMax);
                         if (SearchObj.surfaceMin != 0)
                             result = result.Where(x => x.Surface >= SearchObj.surfaceMin);
+                        if (SearchObj.PrixMax != 0)
+                            result = result.Where(x => x.Price <= SearchObj.PrixMax);
+                        if (SearchObj.PrixMin != 0)
+                            result = result.Where(x => x.Price >= SearchObj.PrixMin);
                     }
                     _response.IsSuccess = true;
                     _response.StatusCode = HttpStatusCode.OK;
                     _response.Result = result ?? [];
-                    return Ok(result);
+                    return Ok(_response);
                 }
                 else
                 {

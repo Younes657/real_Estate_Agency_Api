@@ -20,7 +20,6 @@ namespace AgenceImmobiliareApi.Models
         [Required]
         public int AddressId { get; set; } //foreign key
         public Addresse Addresse { get; set; } = null!;
-        public bool IsActive { get; set; }
         public int Floor { get; set; }
         public int? BathRoom {  get; set; }
         public string? Description { get; set; }
