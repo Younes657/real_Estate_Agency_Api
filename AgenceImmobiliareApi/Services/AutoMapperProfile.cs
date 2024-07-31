@@ -23,6 +23,9 @@ namespace AgenceImmobiliareApi.Services
             CreateMap<BlogCreateDto, BlogArticle>();
             CreateMap<BlogArticle, BlogUpdateDto>();
             CreateMap<BlogUpdateDto, BlogArticle>();
+
+            CreateMap<UserContact, UserContactCreateDto>();
+            CreateMap<UserContactCreateDto, UserContact>();
         }
     }
 }

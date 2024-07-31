@@ -15,6 +15,8 @@ namespace AgenceImmobiliareApi.Models
         [Required]
         public DateTime PublicationDate { get; set; } //add the modification date
         public DateTime? UpdatedDate { get; set; }
+        [Required]
+        public int NumberBlog { get; set; }
 
     }
 }

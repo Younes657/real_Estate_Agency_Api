@@ -10,5 +10,7 @@ namespace AgenceImmobiliareApi.Models.DTOs
         public string Description { get; set; }
         [Required]
         public string Author { get; set; }
+        [Required]
+        public int NumberBlog { get; set; }
     }
 }

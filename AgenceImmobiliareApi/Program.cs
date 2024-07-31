@@ -9,12 +9,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AgenceImmobiliareApi.DbInitializer;
+using AgenceImmobiliareApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
+builder.Services.AddSingleton<EmailService>();
 
 // add the dbcontext 
 builder.Services.AddDbContext<AppDbContext>(options =>

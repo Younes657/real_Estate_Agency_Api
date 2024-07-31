@@ -11,7 +11,7 @@ namespace AgenceImmobiliareApi.Models
         public string? InstagramLink {  get; set; }
         public string? Email {  get; set; }
         public string? PhoneNumber {  get; set; }
-        
+        public string? TwitterLink { get; set; }
         public string? WhatUpNumber {  get; set; }
 
         [Required]
@@ -20,6 +20,7 @@ namespace AgenceImmobiliareApi.Models
         public string Ville {  get; set; }
         [Required]
         public string Rue {  get; set; }
+        public string? streetNumber { get; set; }
         public string? PostalCode {  get; set; }
 
 

@@ -16,6 +16,10 @@ namespace AgenceImmobiliareApi.Models
         public string Message { get; set; }
         [Required]
         public string Sujet {  get; set; }
+        [Required]
+        public bool Seen {  get; set; }
+        [Required]
+        public DateTime CreatedDate { get; set; }
 
     }
 }
