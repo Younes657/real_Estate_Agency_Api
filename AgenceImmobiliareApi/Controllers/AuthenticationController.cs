@@ -203,7 +203,68 @@ namespace AgenceImmobiliareApi.Controllers
             _response.Errors.Add("Votre identifiant n'est pas valide, vous devez vous connecter");
             return Unauthorized(_response);
         }
-
+        [HttpPost("ChangeCredential")]
+        [Authorize(Roles = SD.Role_Admin)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<ApiResponse>> ChangeCredential([FromBody] ChangeCredentialDto credentail)
+        {
+            if (ModelState.IsValid)
+            {
+                string authToken = HttpContext.Request.Cookies["token"] ?? "";
+                if (string.IsNullOrEmpty(authToken))
+                {
+                    var principal = GetTokenPrincipal(authToken);
+                    if (principal?.Identity != null)
+                    {
+                        ApplicationUser user = await _userManger.FindByEmailAsync(User.FindFirst(ClaimTypes.Email)?.Value);
+                        if (user != null) 
+                        {
+                            var result = await _userManger.CheckPasswordAsync(user, credentail.OldPassword);
+                            if (result)
+                            {
+                                _ = await _userManger.SetEmailAsync(user, credentail.NewEmail);
+                                _ = await _userManger.SetUserNameAsync(user, credentail.UserName);
+                                if (string.IsNullOrEmpty(credentail.NewPassword))
+                                {
+                                    var res = await _userManger.ChangePasswordAsync(user, credentail.OldPassword, credentail.NewPassword);
+                                }
+                                _response.IsSuccess = true;
+                                _response.StatusCode = HttpStatusCode.OK;
+                                _response.Result = new { credentail.UserName, credentail.NewEmail };
+                                return Ok(_response);
+                            }
+                            else
+                            {
+                                _response.IsSuccess = false;
+                                _response.StatusCode = HttpStatusCode.Unauthorized;
+                                _response.Errors.Add("Votre Mot de Pass est Incorrect !!");
+                            }
+                        }
+                        else
+                        {
+                            _response.IsSuccess = false;
+                            _response.StatusCode = HttpStatusCode.Unauthorized;
+                            _response.Errors.Add("Vous étez pas Autorisé de Faire une Modificaton Verifié votre Informations d'Identification !!");
+                        }
+                    }
+                    else
+                    {
+                        _response.IsSuccess = false;
+                        _response.StatusCode = HttpStatusCode.Unauthorized;
+                        _response.Errors.Add("Vous étez pas Autorisé de Faire une Modificaton Verifié votre Informations d'Identification !!");
+                    }
+                }
+            }
+            else
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.Errors = ModelState.SelectMany(x => x.Value.Errors.Select(p => p.ErrorMessage)).ToList();
+                return BadRequest(_response);
+            }
+            return Unauthorized(_response);
+        }
 
         private string GenerateToken(ApplicationUser user, string role)
         {
