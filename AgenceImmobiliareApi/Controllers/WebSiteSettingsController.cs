@@ -10,7 +10,7 @@ using System.Net;
 
 namespace AgenceImmobiliareApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/WebInfo")]
     [ApiController]
     public class WebSiteSettingsController : ControllerBase
     {
@@ -24,6 +24,7 @@ namespace AgenceImmobiliareApi.Controllers
             _response = new ApiResponse();
         }
         [HttpGet]
+        [Authorize(Roles = SD.Role_Admin)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse>> GetAll()
@@ -63,7 +64,7 @@ namespace AgenceImmobiliareApi.Controllers
                         _response.StatusCode = HttpStatusCode.BadRequest;
                         return BadRequest(_response);
                     }
-                    var infoDb = await  _UnitOfWork.AppDbContext().WebSiteInfos.FirstOrDefaultAsync(x => x.Id == id);
+                    var infoDb = await  _UnitOfWork.AppDbContext().WebSiteInfos.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
                     if (infoDb == null)
                     {
                         _response.IsSuccess = false;

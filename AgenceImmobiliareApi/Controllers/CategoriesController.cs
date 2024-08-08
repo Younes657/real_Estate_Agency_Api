@@ -146,7 +146,9 @@ namespace AgenceImmobiliareApi.Controllers
                         _response.StatusCode = HttpStatusCode.NotFound;
                         return NotFound(_response);
                     }
+                    int number = categoryDb.NbREstate;
                     categoryDb = _Mapper.Map<Category>(categoryDto);
+                    categoryDb.NbREstate = number;
                     _UnitOfWork.CategoryRepo.Update(categoryDb);
                     await _UnitOfWork.Save();
                     _response.IsSuccess = true;

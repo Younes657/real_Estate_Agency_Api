@@ -5,6 +5,7 @@ using AgenceImmobiliareApi.Repository.IRepository;
 using AgenceImmobiliareApi.Utility;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace AgenceImmobiliareApi.DbInitializer
 {
@@ -54,6 +55,24 @@ namespace AgenceImmobiliareApi.DbInitializer
                     _UserManager.AddToRoleAsync(user, SD.Role_Admin).GetAwaiter().GetResult();
                 }
                
+            }
+            if (_UnitOfWork.AppDbContext().WebSiteInfos.ToList().Count() <= 0) 
+            {
+                WebSiteInfo info = new WebSiteInfo()
+                {
+                    Wilaya = "Alger",
+                    Ville = "Birkhadem",
+                    Rue = "Lots les rosiers",
+                    streetNumber = "23",
+                    PostalCode = "16330",
+                    Email= "info@immo-nari.com",
+                    PhoneNumber= "0550 54 56 68",
+                    WhatUpNumber= "0550 54 56 68",
+                    linkdinLink = "https://www.linkedin.com/in/saddek-gozim-1339322b/?originalSubdomain=dz",
+                    FacebookLink = "https://web.facebook.com/Narimmo?_rdc=1&_rdr"
+                };
+                _UnitOfWork.AppDbContext().WebSiteInfos.AddAsync(info).GetAwaiter().GetResult();
+                _UnitOfWork.Save().GetAwaiter().GetResult();
             }
             return;
         }

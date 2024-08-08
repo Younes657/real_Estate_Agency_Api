@@ -137,38 +137,33 @@ namespace AgenceImmobiliareApi.Controllers
         [Authorize(Roles = SD.Role_Admin)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<ApiResponse>> Logout(string Username)
+        public async Task<ActionResult<ApiResponse>> Logout()
         {
-            if (!string.IsNullOrEmpty(Username))
+            var cookieOption = new CookieOptions
             {
-                var cookieOption = new CookieOptions
-                {
-                    Expires = DateTime.UtcNow.AddDays(-1),
-                    HttpOnly = true,
-                    Secure = true,
-                    IsEssential = true,
-                    SameSite = SameSiteMode.None
-                };
-                HttpContext.Response.Cookies.Delete("token", cookieOption);
-                HttpContext.Response.Cookies.Delete("refresh-token", cookieOption);
-                var user = await _UnitOfWork.AppDbContext().ApplicationUsers.FirstOrDefaultAsync(x => x.UserName == Username);
-                if (user != null)
-                {
-                    user.RefreshToken = "";
-                    user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(-1);
-                    await _UnitOfWork.Save();
-                }
-                _response.IsSuccess = true;
-
-                _response.StatusCode = HttpStatusCode.NoContent;
-
-                return NoContent();
+                Expires = DateTime.UtcNow.AddDays(-1),
+                HttpOnly = true,
+                Secure = true,
+                IsEssential = true,
+                SameSite = SameSiteMode.None
+            };
+            var princpals = GetTokenPrincipal(HttpContext.Request.Cookies["token"] ?? "");
+            string username = princpals.Identity.Name;
+            HttpContext.Response.Cookies.Delete("token", cookieOption);
+            HttpContext.Response.Cookies.Delete("refresh-token", cookieOption);
+            var user = await _UnitOfWork.AppDbContext().ApplicationUsers.FirstOrDefaultAsync(x=>x.UserName==username);
+            if (user != null)
+            {
+                user.RefreshToken = "";
+                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(-1);
+                _UnitOfWork.AppDbContext().ApplicationUsers.Update(user);
+                await _UnitOfWork.Save();
             }
-            _response.IsSuccess = false;
+            _response.IsSuccess = true;
 
-            _response.StatusCode = HttpStatusCode.BadRequest;
-            _response.Errors.Add("username missing !!");
-            return BadRequest(_response);
+            _response.StatusCode = HttpStatusCode.NoContent;
+
+            return NoContent();
 
         }
 
@@ -179,7 +174,9 @@ namespace AgenceImmobiliareApi.Controllers
         public async Task<ActionResult<ApiResponse>> CheckAuth()
         {
             var authToken = HttpContext.Request.Cookies["token"];
-            if (authToken != null)
+            string refreshToken = HttpContext.Request.Cookies["refresh-token"] ?? "";
+
+            if (authToken != null && authToken != "" && !string.IsNullOrEmpty(refreshToken))
             {
                 var principal = GetTokenPrincipal(authToken);
                 if (principal?.Identity != null)
@@ -212,7 +209,7 @@ namespace AgenceImmobiliareApi.Controllers
             if (ModelState.IsValid)
             {
                 string authToken = HttpContext.Request.Cookies["token"] ?? "";
-                if (string.IsNullOrEmpty(authToken))
+                if (!string.IsNullOrEmpty(authToken))
                 {
                     var principal = GetTokenPrincipal(authToken);
                     if (principal?.Identity != null)
@@ -225,7 +222,7 @@ namespace AgenceImmobiliareApi.Controllers
                             {
                                 _ = await _userManger.SetEmailAsync(user, credentail.NewEmail);
                                 _ = await _userManger.SetUserNameAsync(user, credentail.UserName);
-                                if (string.IsNullOrEmpty(credentail.NewPassword))
+                                if (!string.IsNullOrEmpty(credentail.NewPassword))
                                 {
                                     var res = await _userManger.ChangePasswordAsync(user, credentail.OldPassword, credentail.NewPassword);
                                 }
