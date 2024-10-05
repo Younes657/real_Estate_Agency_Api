@@ -24,7 +24,6 @@ namespace AgenceImmobiliareApi.Controllers
             _response = new ApiResponse();
         }
         [HttpGet]
-        [Authorize(Roles = SD.Role_Admin)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ApiResponse>> GetAll()

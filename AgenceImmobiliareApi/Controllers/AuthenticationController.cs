@@ -1,11 +1,13 @@
 ﻿using AgenceImmobiliareApi.Models;
 using AgenceImmobiliareApi.Models.DTOs;
 using AgenceImmobiliareApi.Repository.IRepository;
+using AgenceImmobiliareApi.Services;
 using AgenceImmobiliareApi.Utility;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -27,7 +29,9 @@ namespace AgenceImmobiliareApi.Controllers
         private UserManager<ApplicationUser> _userManger;
         private RoleManager<IdentityRole> _roleManager;
         private IConfiguration _configuration;
-        public AuthenticationController(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager, IConfiguration config)
+        private readonly IEmailService _EmailService;
+        public AuthenticationController(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager, IConfiguration config,
+            IEmailService emailService)
         {
             _UnitOfWork = unitOfWork;
             _mapper = mapper;
@@ -36,6 +40,7 @@ namespace AgenceImmobiliareApi.Controllers
             _userManger = userManager;
             SecretKey = configuration.GetValue<string>("ApiSetting:SecretKey") ?? throw new NullReferenceException();
             _configuration = config;
+            _EmailService = emailService;
         }
         [HttpPost("Login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -263,6 +268,92 @@ namespace AgenceImmobiliareApi.Controllers
             return Unauthorized(_response);
         }
 
+        [HttpPost("ForgetPassword")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse>> ForgetPassword([FromBody] ForgetPasswordDTO ForgetPass)
+        {
+            if (!ModelState.IsValid)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.Errors = ModelState.SelectMany(x => x.Value.Errors.Select(p => p.ErrorMessage)).ToList();
+                return BadRequest(_response);
+            }
+            ApplicationUser? resultdb = await _userManger.FindByEmailAsync(ForgetPass.EmailAddress);
+            if (resultdb is  null)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.Errors.Add("l'E-mail que vous avez fourni n'existe pas. Vérifiez à nouveau!");
+                return BadRequest(_response);
+            }
+            var clientUrl = HttpContext.Request.Headers["Client-Url"].ToString();
+            if (string.IsNullOrEmpty(clientUrl))
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.Errors.Add("Une erreur s'est produite pendant le processus, vérifiez à nouveau ou actualisez le site Web");
+                return BadRequest(_response);
+            }
+            var token = await _userManger.GeneratePasswordResetTokenAsync(resultdb);
+            Dictionary<string, string?> param = new()
+            {
+                {"token" ,  token ?? ""},
+                {"email" , ForgetPass.EmailAddress }
+            };
+            string url = QueryHelpers.AddQueryString(clientUrl , param);
+            try
+            {
+                await _EmailService.SendEmailAsync("younesbc2123@gmail.com", "Réinitialiser le mot de passe (cliquez sur l'URL)", url);
+                _response.IsSuccess = true;
+                _response.StatusCode = HttpStatusCode.OK;
+                _response.Result = "";
+                return Ok(_response);
+            }
+            catch
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.InternalServerError;
+                _response.Errors.Add("Erreur : échec de l'envoi de l'e-mail, vérifiez à nouveau");
+                return Ok(_response);
+            }
+        }
+        [HttpPost("ResetPassword")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ApiResponse>> ResetPassword([FromBody] ResetPasswordDTO resetPass)
+        {
+            if (!ModelState.IsValid)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.Errors = ModelState.SelectMany(x => x.Value.Errors.Select(p => p.ErrorMessage)).ToList();
+                return BadRequest(_response);
+            }
+            var user = await _userManger.FindByEmailAsync(resetPass.EmailAddress);
+            if (user == null)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.Errors.Add("l'E-mail que vous avez fourni n'existe pas. Vérifiez à nouveau!");
+                return BadRequest(_response);
+            }
+            var result = await _userManger.ResetPasswordAsync(user, resetPass.Token, resetPass.Password);
+            if (!result.Succeeded)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.InternalServerError;
+                _response.Errors.Add("échec de la réinitialisation du mot de passe");
+                return StatusCode(StatusCodes.Status500InternalServerError, _response);
+            }
+            _response.IsSuccess = true;
+            _response.StatusCode = HttpStatusCode.OK;
+            _response.Result = "";
+            return Ok(_response);
+        }
+
         private string GenerateToken(ApplicationUser user, string role)
         {
             JwtSecurityTokenHandler TokenHandler = new();
@@ -294,6 +385,7 @@ namespace AgenceImmobiliareApi.Controllers
             
             return TokenString;
         }
+       
         private string GenerateRefreshToken()
         {
             var randomNumber = new byte[64];

@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
-builder.Services.AddSingleton<EmailService>();
+builder.Services.AddSingleton<IEmailService , EmailService>();
 
 // add the dbcontext 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -55,8 +55,7 @@ builder.Services.AddAuthentication(u =>
     u.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
-        {
-            
+        {   
             context.Token = context.Request.Cookies["token"] ?? "";
             return Task.CompletedTask;
         }

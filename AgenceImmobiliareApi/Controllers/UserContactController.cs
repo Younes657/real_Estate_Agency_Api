@@ -18,8 +18,8 @@ namespace AgenceImmobiliareApi.Controllers
         private readonly IUnitOfWork _UnitOfWork;
         private ApiResponse _response;
         private readonly IMapper _Mapper;
-        private readonly EmailService _EmailService;
-        public UserContactController(IUnitOfWork unitofWork, IMapper mapper , EmailService emailService)
+        private readonly IEmailService _EmailService;
+        public UserContactController(IUnitOfWork unitofWork, IMapper mapper , IEmailService emailService)
         {
             _UnitOfWork = unitofWork;
             _Mapper = mapper;
